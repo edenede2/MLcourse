@@ -1,4 +1,6 @@
 import numpy as np
+from tqdm import tqdm
+
 
 
 # Decision Tree Classifier (with Gini impurity)
@@ -56,6 +58,9 @@ class DecisionTree:
         best_gini = 1.0
         best_idx, best_thresh = None, None
 
+        unique_classes = np.unique(y)
+        class_count = len(unique_classes)
+
         # For each feature
         for idx in range(n):
             # Get the thresholds and class labels
@@ -64,24 +69,19 @@ class DecisionTree:
             # Ensure numeric thresholds
             thresholds = np.array(thresholds, dtype=np.float64)
 
-            num_left = [0] * len(np.unique(y))
-
-            num_right = [np.sum(classes == c) for c in np.unique(y)]
+            num_left = [0] * class_count
+            num_right = [np.sum(classes == c) for c in unique_classes]
 
             # For each sample
             for i in range(1, m):
-                # Get the class of the sample
-                c = classes[i - 1]
-                # Update the number of samples in the left and right subsets
-                num_left[c] += 1
-                num_right[c] -= 1
+                class_idx = np.where(unique_classes == classes[i - 1])[0][0]
+                num_left[class_idx] += 1
+                num_right[class_idx] -= 1
 
-                # Calculate the Gini impurity of the left and right subsets
-                gini_left = 1.0 - sum((num_left[x] / i) ** 2 for x in range(len(np.unique(y))))
-                gini_right = 1.0 - sum((num_right[x] / (m - i)) ** 2 for x in range(len(np.unique(y))))
+                gini_left = 1.0 - sum((num_left[x] / i) ** 2 for x in range(class_count))
+                gini_right = 1.0 - sum((num_right[x] / (m - i)) ** 2 for x in range(class_count))
                 gini = (i * gini_left + (m - i) * gini_right) / m
 
-                # Update the best split if the current split has a lower Gini impurity
                 if thresholds[i] == thresholds[i - 1]:
                     continue
                 if gini < best_gini:
@@ -89,17 +89,19 @@ class DecisionTree:
                     best_idx = idx
                     best_thresh = (thresholds[i] + thresholds[i - 1]) / 2
         
-        # Return the best feature and threshold
         return best_idx, best_thresh
 
     # Grow the decision tree
     def _grow_tree(self, X, y, depth=0):
+        
         # Get the number of samples for each class label
         num_samples_per_class = [np.sum(y == i) for i in np.unique(y)]
         # Get the class that occurs
         predicted_class = np.argmax(num_samples_per_class)
         # Create a node for the decision tree
         node = {'predicted_class': predicted_class}
+
+        
 
         # If the depth of the tree is less than the maximum depth
         if depth < self.max_depth:
